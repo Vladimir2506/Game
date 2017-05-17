@@ -4,7 +4,6 @@
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
-#include <sstream>
 
 using namespace std;
 
@@ -108,7 +107,7 @@ enum enGen
 	PG_ALIVE, PG_DYING
 };
 
-string ParamGenerate(vector<PlayerInfo> & players, int nKey, stringstream & ss)
+string ParamGenerate(vector<PlayerInfo> & players, int nKey)
 {
 	string strParam;
 	switch (nKey)
@@ -116,23 +115,19 @@ string ParamGenerate(vector<PlayerInfo> & players, int nKey, stringstream & ss)
 	case PG_ALIVE:
 		for (auto p : players)
 		{
-			ss.clear();
 			if (p.m_stateSelf.bAlive)
 			{
-				ss << p.GetID();
+				strParam += to_string(p.GetID) + string(" ");
 			}
-			strParam += ss.str() + string(" ");
 		}
 		break;
 	case PG_DYING:
 		for (auto p : players)
 		{
-			ss.clear();
 			if (p.m_stateSelf.bDying)
 			{
-				ss << p.GetID();
+				strParam += to_string(p.GetID) + string(" ");
 			}
-			strParam += ss.str() + string(" ");
 		}
 		break;
 	default:
@@ -213,7 +208,6 @@ void DoParametres
 	CServer & server			//Send message
 )
 {
-	stringstream ss;
 	switch (nResp) {
 	case RM_KILL:
 		vecSet[VD_KILL].push_back(stoi(str));
@@ -254,13 +248,13 @@ void DoParametres
 				{
 				case 1:
 				{
-					msgWitch = string("_P|") + ParamGenerate(vecPlayers, PG_ALIVE, ss);
+					msgWitch = string("_P|") + ParamGenerate(vecPlayers, PG_ALIVE);
 					GroupRadio(server, msgWitch, vecPlayers, witch);
 				}
 				break;
 				case 2:
 				{
-					msgWitch = string("_A|") + ParamGenerate(vecPlayers, PG_DYING, ss);
+					msgWitch = string("_A|") + ParamGenerate(vecPlayers, PG_DYING);
 					GroupRadio(server, msgWitch, vecPlayers, witch);
 				}
 				break;
@@ -292,9 +286,7 @@ void DoParametres
 				{
 					p.m_stateSelf.bBadged = true;
 					msg = "_S|Player ";
-					ss.clear();
-					ss << p.GetID();
-					msg += ss.str() + " " + p.GetName() + "is the new police.";
+					msg += to_string(p.GetID()) + " " + p.GetName() + "is the new police.";
 					GlobalRadio(server, msg, vecPlayers);
 				}
 			}
@@ -369,12 +361,10 @@ int EndGame(vector<PlayerInfo> &pl)
 }
 
 //Show round
-void ShowRound(bool bNight,CServer & server,stringstream & ss,int nRound,vector<PlayerInfo> &vecPlayers)
+void ShowRound(bool bNight,CServer & server,int nRound,vector<PlayerInfo> &vecPlayers)
 {
 	string strRound = string("_S|Round ");
-	ss.clear();
-	ss << nRound;
-	strRound += ss.str();
+	strRound += to_string(nRound);
 	strRound += (bNight ? string(" Night") : string(" Day"));
 	GlobalRadio(server, strRound, vecPlayers);
 }
@@ -383,7 +373,6 @@ void ShowRound(bool bNight,CServer & server,stringstream & ss,int nRound,vector<
 int MainLogic()
 {
 	//Game Init
-	stringstream ss;
 	CServer server;
 	int nRound = 0;		//Counter of rounds
 	bool bNight = false;
@@ -443,9 +432,9 @@ int MainLogic()
 		//Night Phase
 		bNight = true;
 		//Show DayNight and round
-		ShowRound(bNight, server, ss, nRound, vecPlayers);
+		ShowRound(bNight, server,nRound, vecPlayers);
 		string strAlive;	//Generate a param string of alive players' IDs
-		strAlive = ParamGenerate(vecPlayers, PG_ALIVE, ss);
+		strAlive = ParamGenerate(vecPlayers, PG_ALIVE);
 		//WEREWOLF
 		string msgWolf = string("_K|") + strAlive;
 		GroupRadio(server, msgWolf, vecPlayers, werewolf);
@@ -477,7 +466,7 @@ int MainLogic()
 		}
 		//DAWN
 		//Show DayNight and round
-		ShowRound(bNight, server, ss, nRound, vecPlayers);
+		ShowRound(bNight, server, nRound, vecPlayers);
 		//First day select a police
 		if (nRound == 1)
 		{
@@ -501,9 +490,7 @@ int MainLogic()
 			int nBadge = Regress(vecSet[VD_BADGE]);
 			vecPlayers[nBadge].m_stateSelf.bBadged = true;
 			string strBadge("_S|Player ");
-			ss.clear();
-			ss << nBadge;
-			strBadge += ss.str() + string(" ") + vecPlayers[nBadge].GetName() + string("is elected as Police.");
+			strBadge += to_string(nBadge) + string(" ") + vecPlayers[nBadge].GetName() + string("is elected as Police.");
 			GlobalRadio(server, strBadge, vecPlayers);
 		}
 		//NOTE
@@ -513,7 +500,7 @@ int MainLogic()
 			if (p.m_stateSelf.bDying)
 			{
 				string msgNote("_S|Last night Player ");
-				msgNote += ParamGenerate(vecPlayers, PG_DYING, ss) + string(" ") + p.GetName() + string(" was killed.");
+				msgNote += ParamGenerate(vecPlayers, PG_DYING) + string(" ") + p.GetName() + string(" was killed.");
 				GlobalRadio(server, msgNote, vecPlayers);
 				plDead = &p;
 				p.m_stateSelf.bAlive = false;
@@ -526,7 +513,7 @@ int MainLogic()
 		{
 			break;
 		}
-		strAlive = ParamGenerate(vecPlayers, PG_ALIVE, ss);
+		strAlive = ParamGenerate(vecPlayers, PG_ALIVE);
 		if (plDead != nullptr)	//Someone is killed
 		{
 			if (plDead->m_stateSelf.bBadged)	//Move badge
@@ -556,9 +543,7 @@ int MainLogic()
 				if (plKill != nullptr)
 				{
 					string strHunter("_S|Hunter chose to kill player ");
-					ss.clear();
-					ss << plKill->GetID();
-					strHunter += ss.str() + string(" ") + plKill->GetName();
+					strHunter +=to_string(plKill->GetID()) + string(" ") + plKill->GetName();
 					GlobalRadio(server, strHunter, vecPlayers);
 					plKill->m_stateSelf.bAlive = false;
 					plKill->m_stateSelf.bDying = false;
@@ -591,7 +576,7 @@ int MainLogic()
 		//Speak globally
 		vector<string> vecTalk;
 		string msgTalk("_T|");
-		strAlive = ParamGenerate(vecPlayers, PG_ALIVE, ss);
+		strAlive = ParamGenerate(vecPlayers, PG_ALIVE);
 		msgTalk += strAlive;
 		GlobalRadio(server, msgTalk, vecPlayers);
 		GlobalGet(server, vecTalk, vecPlayers);
@@ -611,9 +596,7 @@ int MainLogic()
 		}
 		int nExile = Regress(vecSet[VD_EXILE]);
 		string strExile("_S|Player ");
-		ss.clear();
-		ss << nExile;
-		strExile += ss.str() + string(" ") + vecPlayers[nExile].GetName() + string(" is exiled!");
+		strExile += to_string(nExile) + string(" ") + vecPlayers[nExile].GetName() + string(" is exiled!");
 		GlobalRadio(server, strExile, vecPlayers);
 		vecPlayers[nExile].m_stateSelf.bAlive = false;
 		//End check
