@@ -66,6 +66,11 @@ void CServer::Shut()
 		closesocket(k);
 	}
 	closesocket(m_socketKernel);
+	int nRes;
+	do
+	{
+		nRes = WSACleanup();
+	} while (nRes == WSANOTINITIALISED);
 }
 
 int CServer::SendMsg(const char * msg, int len, int seq)

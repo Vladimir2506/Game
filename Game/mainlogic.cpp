@@ -1,16 +1,16 @@
-#include "character.h"
 #include "gameinfo.h"
 #include "Server.h"
 #include <vector>
 #include <ctime>
 #include <cstdlib>
+#include <iostream>
 #include <sstream>
 
 using namespace std;
 
 //Some global constants
 const int PLAYER_NUM = 8;	//Total players
-const int REFUSE = 479;
+const int REFUSE = 951;
 const int WOLF_NUM = 3;
 const int VILL_NUM = 5;
 const int MAX_SIZE = 100;	//Max size of buffer
@@ -255,19 +255,30 @@ void DoParametres
 				case 1:
 				{
 					msgWitch = string("_P|") + ParamGenerate(vecPlayers, PG_ALIVE, ss);
+					GroupRadio(server, msgWitch, vecPlayers, witch);
 				}
 				break;
 				case 2:
 				{
 					msgWitch = string("_A|") + ParamGenerate(vecPlayers, PG_DYING, ss);
+					GroupRadio(server, msgWitch, vecPlayers, witch);
 				}
 				break;
+				case 3:
+				{
+					return;
+				}
 				default:
 					break;
 				}
 			}
 		}
-		GroupRadio(server, msgWitch, vecPlayers, witch);
+		vector<string> vecWitch;
+		GroupGet(server, vecWitch, vecPlayers, witch);
+		for (auto r : vecWitch)
+		{
+			Parse(r, vecPlayers, vecSet, server);
+		}
 		break;
 	}
 	case RM_XOHTER:
@@ -456,16 +467,11 @@ int MainLogic()
 			Parse(r, vecPlayers, vecSet, server);
 		}
 		//WITCH
-		string msgWitch = string("_W|") + strAlive;
+		string msgWitch("_W|");
 		GroupRadio(server, msgWitch, vecPlayers, witch);
-		vector<string> vecRespWitch, vecWitch;
+		vector<string> vecRespWitch;
 		GroupGet(server, vecRespWitch, vecPlayers, witch);
 		for (auto r : vecRespWitch)
-		{
-			Parse(r, vecPlayers, vecSet, server);
-		}
-		GroupGet(server, vecWitch, vecPlayers, witch);
-		for (auto r : vecWitch)
 		{
 			Parse(r, vecPlayers, vecSet, server);
 		}
