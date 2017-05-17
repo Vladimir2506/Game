@@ -186,7 +186,7 @@ void GlobalGet(CServer & server, vector<string> & vecResp, vector<PlayerInfo> & 
 }
 
 //Parse string
-void Parse(const string & str,vector<PlayerInfo> & vecPlayers,vector<vector<int>> & vecSet, CServer &server)
+void Parse(const string & str,vector<PlayerInfo> & vecPlayers,vector<int> & vecTogo, CServer &server)
 {
 	if (str.empty())
 	{
@@ -195,7 +195,7 @@ void Parse(const string & str,vector<PlayerInfo> & vecPlayers,vector<vector<int>
 	string strResp, strPara;
 	strResp = str.substr(0, str.find("|"));
 	strPara = str.substr(1 + str.find("|"));
-	DoParametres(stoi(strResp), strPara, vecPlayers ,vecSet, server);
+	DoParametres(stoi(strResp), strPara, vecPlayers , vecTogo, server);
 }
 
 //Do something to proceed parametres
@@ -204,13 +204,13 @@ void DoParametres
 	int nResp,	//Case of Response
 	const string & str,	//Parametre of Response
 	vector<PlayerInfo> & vecPlayers,	//Players of the game
-	vector<vector<int>>  & vecSet,		//Delegate
+	vector<int> & vecTogo,		//Delegate
 	CServer & server			//Send message
 )
 {
 	switch (nResp) {
 	case RM_KILL:
-		vecSet[VD_KILL].push_back(stoi(str));
+		vecTogo.push_back(stoi(str));
 		break;
 	case RM_TALK:
 		GlobalRadio(server, str, vecPlayers);
@@ -219,10 +219,10 @@ void DoParametres
 		vecPlayers[stoi(str)].m_stateSelf.bDying = false;
 		break;
 	case RM_BADGE:
-		vecSet[VD_BADGE].push_back(stoi(str));
+		vecTogo.push_back(stoi(str));
 		break;
 	case RM_EXILE:
-		vecSet[VD_EXILE].push_back(stoi(str));
+		vecTogo.push_back(stoi(str));
 		break;
 	case RM_INDICATE:
 	{
@@ -271,7 +271,7 @@ void DoParametres
 		GroupGet(server, vecWitch, vecPlayers, witch);
 		for (auto r : vecWitch)
 		{
-			Parse(r, vecPlayers, vecSet, server);
+			Parse(r, vecPlayers, vecTogo, server);
 		}
 		break;
 	}
@@ -427,7 +427,7 @@ int MainLogic()
 			++nRound;	//Start from the first Night
 		}
 		//Delegate to the mainlogic to calculate the one
-		vector<int> vecToKill, vecToBadge, vecToExile;
+		vector<int> vecToKill, vecToBadge, vecToExile, vecDummy;
 		vector<vector<int>> vecSet{ vecToKill, vecToBadge, vecToExile };
 		//Night Phase
 		bNight = true;
@@ -442,7 +442,7 @@ int MainLogic()
 		GroupGet(server, vecRespWolf, vecPlayers, werewolf);
 		for (auto r : vecRespWolf)
 		{
-			Parse(r, vecPlayers, vecSet, server);
+			Parse(r, vecPlayers, vecSet[VD_KILL], server);
 		}
 		int nKill = Regress(vecSet[VD_KILL]);
 		vecPlayers[nKill].m_stateSelf.bDying = true;	//Sum of the wolf killing
@@ -453,7 +453,7 @@ int MainLogic()
 		GroupGet(server, vecRespProphet, vecPlayers, prophet);
 		for (auto r : vecRespProphet)
 		{
-			Parse(r, vecPlayers, vecSet, server);
+			Parse(r, vecPlayers, vecDummy, server);
 		}
 		//WITCH
 		string msgWitch("_W|");
@@ -462,7 +462,7 @@ int MainLogic()
 		GroupGet(server, vecRespWitch, vecPlayers, witch);
 		for (auto r : vecRespWitch)
 		{
-			Parse(r, vecPlayers, vecSet, server);
+			Parse(r, vecPlayers, vecDummy, server);
 		}
 		//DAWN
 		//Show DayNight and round
@@ -485,7 +485,7 @@ int MainLogic()
 			}
 			for (auto b : vecRespBadge)
 			{
-				Parse(b, vecPlayers, vecSet, server);
+				Parse(b, vecPlayers, vecToBadge, server);
 			}
 			int nBadge = Regress(vecSet[VD_BADGE]);
 			vecPlayers[nBadge].m_stateSelf.bBadged = true;
@@ -523,7 +523,7 @@ int MainLogic()
 				server.SendMsg(strXOther.c_str(), LEN(strXOther), plDead->GetID());
 				char sz[MAX_SIZE];
 				server.RecvMsg(sz, MAX_SIZE, plDead->GetID());
-				Parse(string(sz), vecPlayers, vecSet, server);
+				Parse(string(sz), vecPlayers, vecDummy, server);
 			}
 			if (plDead->m_nch == hunter)	//Hunter's phase
 			{
@@ -532,7 +532,7 @@ int MainLogic()
 				server.SendMsg(msgHunter.c_str(), LEN(msgHunter), plDead->GetID());
 				char szHunter[MAX_SIZE];
 				server.RecvMsg(szHunter, MAX_SIZE, plDead->GetID());
-				Parse(string(szHunter), vecPlayers, vecSet, server);
+				Parse(string(szHunter), vecPlayers, vecDummy, server);
 				for (auto p : vecPlayers)
 				{
 					if (p.m_stateSelf.bDying)
@@ -559,13 +559,13 @@ int MainLogic()
 			server.SendMsg(msgNote.c_str(), LEN(msgNote), plDead->GetID());
 			char szNote[MAX_SIZE];
 			server.RecvMsg(szNote, MAX_SIZE, plDead->GetID());
-			Parse(string(szNote), vecPlayers, vecSet, server);
+			Parse(string(szNote), vecPlayers, vecDummy, server);
 			if (plKill != nullptr)	
 			{
 				server.SendMsg(msgNote.c_str(), LEN(msgNote), plKill->GetID());
 				char szNote2[MAX_SIZE];
 				server.RecvMsg(szNote2, MAX_SIZE, plKill->GetID());
-				Parse(string(szNote2), vecPlayers, vecSet, server);
+				Parse(string(szNote2), vecPlayers, vecDummy, server);
 			}
 		}
 		else	//No one died
@@ -582,7 +582,7 @@ int MainLogic()
 		GlobalGet(server, vecTalk, vecPlayers);
 		for (auto t : vecTalk)
 		{
-			Parse(t, vecPlayers, vecSet, server);
+			Parse(t, vecPlayers, vecDummy, server);
 		}
 		//EXILE
 		vector<string> vecExile;
@@ -592,7 +592,7 @@ int MainLogic()
 		GlobalGet(server, vecExile, vecPlayers);
 		for (auto t : vecExile)
 		{
-			Parse(t, vecPlayers, vecSet, server);
+			Parse(t, vecPlayers, vecDummy, server);
 		}
 		int nExile = Regress(vecSet[VD_EXILE]);
 		string strExile("_S|Player ");
