@@ -13,6 +13,7 @@ const int PLAYER_NUM = 8;	//Total players
 const int REFUSE = 479;
 const int WOLF_NUM = 3;
 const int VILL_NUM = 5;
+const int MAX_SIZE = 100;	//Max size of buffer
 //Some global references
 
 //Response Message 
@@ -20,14 +21,16 @@ vector<string> vecResponseList
 {
 	"_K","_T","_A","_B",
 	"_E","_I","_N","_P",
-	"_W","_M","_X","_H"
+	"_W","_N","_X","_H",
+	"_G"
 };
 
 enum enResponseList 
 {
 	RM_KILL, RM_TALK, RM_ANTIDOTE, RM_BADGE,
 	RM_EXILE, RM_INDICATE, RM_NOTE, RM_POISSON,
-	RM_WITCH, RM_MESSAGE,RM_XOHTER, RM_HUNTER
+	RM_WITCH, RM_NAME,RM_XOHTER, RM_HUNTER,
+	RM_GROUP
 };
 
 //Command Message
@@ -36,7 +39,7 @@ vector<string> vecCommandList
 	"_S","_K","_B","_E",
 	"_I","_P","_A","_W",
 	"_H","_N","_C","_T",
-	"_X","_R"
+	"_X","_R","_G"
 };
 
 enum enCommandList
@@ -44,7 +47,7 @@ enum enCommandList
 	CM_SHOW, CM_KILL, CM_BADGE, CM_EXILE,
 	CM_INDICATE, CM_POISSON, CM_ANTITODE, CM_WITCH,
 	CM_HUNTER, CM_NOTE, CM_CHARACTER, CM_TALK,
-	CM_XOTHER,CM_RESULT
+	CM_XOTHER,CM_RESULT,CM_GROUP
 };
 
 //Vectors need to delegate and get the maximum 
@@ -166,8 +169,8 @@ void GroupGet(CServer & server, vector<string> & vecResp, vector<PlayerInfo> & p
 	{
 		if (p.m_nch == nChara && p.m_stateSelf.bAlive)
 		{
-			char szBuffer[100];
-			server.RecvMsg(szBuffer, 100, p.GetID());
+			char szBuffer[MAX_SIZE];
+			server.RecvMsg(szBuffer, MAX_SIZE, p.GetID());
 			vecResp.push_back(szBuffer);
 		}
 	}
@@ -180,8 +183,8 @@ void GlobalGet(CServer & server, vector<string> & vecResp, vector<PlayerInfo> & 
 	{
 		if (p.m_stateSelf.bAlive)
 		{
-			char szBuffer[100];
-			server.RecvMsg(szBuffer, 100, p.GetID());
+			char szBuffer[MAX_SIZE];
+			server.RecvMsg(szBuffer, MAX_SIZE, p.GetID());
 			vecResp.push_back(szBuffer);
 		}
 	}
@@ -404,7 +407,7 @@ int MainLogic()
 		string strResp, strPara;
 		strResp = strBuffer.substr(0, strBuffer.find("|"));
 		strPara = strBuffer.substr(1 + strBuffer.find("|"));
-		if (stoi(strResp) == RM_MESSAGE)
+		if (stoi(strResp) == RM_NAME)
 		{
 			vecName.push_back(strPara);
 		}
@@ -480,8 +483,8 @@ int MainLogic()
 			{
 				if (p.m_stateSelf.bAlive)
 				{
-					char szBuffer[100];
-					server.RecvMsg(szBuffer, 100, p.GetID());
+					char szBuffer[MAX_SIZE];
+					server.RecvMsg(szBuffer, MAX_SIZE, p.GetID());
 					vecRespBadge.push_back(szBuffer);
 				}
 			}
@@ -525,8 +528,8 @@ int MainLogic()
 				string strXOther("_X|");
 				strXOther += strAlive;
 				server.SendMsg(strXOther.c_str(), LEN(strXOther), plDead->GetID());
-				char sz[100];
-				server.RecvMsg(sz, 100, plDead->GetID());
+				char sz[MAX_SIZE];
+				server.RecvMsg(sz, MAX_SIZE, plDead->GetID());
 				Parse(string(sz), vecPlayers, vecSet, server);
 			}
 			if (plDead->m_nch == hunter)	//Hunter's phase
@@ -534,8 +537,8 @@ int MainLogic()
 				string msgHunter("_H|");
 				msgHunter += strAlive;
 				server.SendMsg(msgHunter.c_str(), LEN(msgHunter), plDead->GetID());
-				char szHunter[100];
-				server.RecvMsg(szHunter, 100, plDead->GetID());
+				char szHunter[MAX_SIZE];
+				server.RecvMsg(szHunter, MAX_SIZE, plDead->GetID());
 				Parse(string(szHunter), vecPlayers, vecSet, server);
 				for (auto p : vecPlayers)
 				{
@@ -563,14 +566,14 @@ int MainLogic()
 			//Note
 			string msgNote("_N|");
 			server.SendMsg(msgNote.c_str(), LEN(msgNote), plDead->GetID());
-			char szNote[100];
-			server.RecvMsg(szNote, 100, plDead->GetID());
+			char szNote[MAX_SIZE];
+			server.RecvMsg(szNote, MAX_SIZE, plDead->GetID());
 			Parse(string(szNote), vecPlayers, vecSet, server);
 			if (plKill != nullptr)	
 			{
 				server.SendMsg(msgNote.c_str(), LEN(msgNote), plKill->GetID());
-				char szNote2[100];
-				server.RecvMsg(szNote2, 100, plKill->GetID());
+				char szNote2[MAX_SIZE];
+				server.RecvMsg(szNote2, MAX_SIZE, plKill->GetID());
 				Parse(string(szNote2), vecPlayers, vecSet, server);
 			}
 		}
