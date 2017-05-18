@@ -208,7 +208,8 @@ void DoParametres
 	CServer & server			//Send message
 )
 {
-	switch (nResp) {
+	switch (nResp) 
+	{
 	case RM_KILL:
 		vecTogo.push_back(stoi(str));
 		break;
