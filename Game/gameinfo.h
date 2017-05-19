@@ -3,8 +3,6 @@
 
 #include <string>
 
-#define LEN(s) 1+s.size()
-
 typedef int TID;
 
 enum enIdentity
