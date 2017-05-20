@@ -98,7 +98,6 @@ void RandomPick(vector<PlayerInfo> & players, CServer & server)
 	for (int k = 0;k < nLimit;++k)
 	{
 		PlayerInfo &p = players[k];
-		string strIdentity;
 		switch (p.m_nch)
 		{
 		case villager:
@@ -120,11 +119,9 @@ void RandomPick(vector<PlayerInfo> & players, CServer & server)
 			break;
 		}
 		//Sendmsg of identity
-		string msg1("_C|"), msg2("_S|Your identity is ");
-		msg1 += p.m_strIdentity;
-		msg2 += p.m_strIdentity;
-		server.SendMsg(msg1.c_str(), LEN(msg1), p.GetID());
-		server.SendMsg(msg2.c_str(), LEN(msg2), p.GetID());
+		string msgId("_C|");
+		msgId += to_string(p.GetID()) + " " + to_string(p.m_nch);
+		server.SendMsg(msgId.c_str(), LEN(msgId), p.GetID());
 	}
 }
 
