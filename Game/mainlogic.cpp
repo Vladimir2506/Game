@@ -52,8 +52,7 @@ vector<string> vecCommandList
 	"_B",	//CM_BADGE = Want return ID vote for police
 	"_E",	//CM_EXILE = Want return ID vote for exile
 	"_I",	//CM_INDICATE = Want return ID to identify
-	"_WA",	//CM_WITCHA = Witch gets the alive
-	"_WD",	//CM_WITCHD = Witch gets the dying
+	"_W",	//CM_WITCH = witch
 	"_H",	//CM_HUNTER = Want return ID to shoot
 	"_N",	//CM_NOTE = Want return the note
 	"_C",	//CM_CHARACTER = Tell the result of pick character
@@ -70,10 +69,10 @@ vector<string> vecCommandList
 enum enCommandList
 {
 	CM_SHOW, CM_KILL, CM_BADGE, CM_EXILE,
-	CM_INDICATE, CM_WITCHA, CM_WITCHD,
+	CM_INDICATE, CM_WITCH,
 	CM_HUNTER, CM_NOTE, CM_CHARACTER, CM_TALK,
 	CM_XOTHER,CM_RESULT,CM_GROUP,CM_SYNCA,
-	CM_SYNCD,CM_IDRES
+	CM_SYNCD,CM_IDRES, CM_VOTE
 };
 
 //Vectors need to delegate and get the maximum 
