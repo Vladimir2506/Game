@@ -36,12 +36,12 @@ vector<string> vecResponseList
 	"_G"	//RM_GROUP = Werewolves Grouptalk Ends
 };
 
-enum enResponseList 
+enum enResponseList
 {
 	RM_KILL, RM_TALK, RM_ANTIDOTE, RM_BADGE,
 	RM_EXILE, RM_INDICATE, RM_NOTE, RM_POISON,
-	RM_WITCH, RM_NAME,RM_XOHTER, RM_HUNTER,
-	RM_GROUP
+	RM_WITCH, RM_NAME, RM_XOHTER, RM_HUNTER,
+	RM_GROUP, CM_VOTE
 };
 
 //Command Message
@@ -62,7 +62,9 @@ vector<string> vecCommandList
 	"_R",	//CM_RESULT = End Game and Show Result	
 	"_G",	//CM_GROUP = Begin a Group talk
 	"_YA",	//CM_SYNCA = Sync alive
-	"_YD"	//CM_SYNCD = Sync dying
+	"_YD",	//CM_SYNCD = Sync dying
+	"_IR",	//CM_IDRES = Result of Indication
+	"_V"	//CM_VOTE = Vote case
 };
 
 enum enCommandList
@@ -71,7 +73,7 @@ enum enCommandList
 	CM_INDICATE, CM_WITCHA, CM_WITCHD,
 	CM_HUNTER, CM_NOTE, CM_CHARACTER, CM_TALK,
 	CM_XOTHER,CM_RESULT,CM_GROUP,CM_SYNCA,
-	CM_SYNCD
+	CM_SYNCD,CM_IDRES
 };
 
 //Vectors need to delegate and get the maximum 
@@ -171,6 +173,44 @@ string ParamGenerate(vector<int> vec)
 	}
 	return strParam;
 }
+
+string BinaryGenerate(vector<PlayerInfo> players,int nKey)
+{
+	string strParam;
+	switch (nKey)
+	{
+	case PG_ALIVE:
+		for (int i = 0; i < PLAYER_NUM; ++i)
+		{
+			if (players[i].m_stateSelf.bAlive)
+			{
+				strParam += "1";
+			}
+			else
+			{
+				strParam += "0";
+			}
+		}
+		break;
+	case PG_DYING:
+		for (int i = 0; i < PLAYER_NUM; ++i)
+		{
+			if (players[i].m_stateSelf.bDying)
+			{
+				strParam += "1";
+			}
+			else
+			{
+				strParam += "0";
+			}
+		}
+		break;
+	default:
+		break;
+	}
+	return strParam;
+}
+
 //Send message to a series of clients
 void GlobalRadio(CServer & server, const string & msg, vector<PlayerInfo> & players)
 {
@@ -237,7 +277,7 @@ void Parse(const string & str,vector<PlayerInfo> & vecPlayers,vector<int> & vecT
 void DoParametres
 (
 	int nResp,	//Case of Response
-	const string & str,	//Parametre of Response
+	string & str,	//Parametre of Response
 	vector<PlayerInfo> & vecPlayers,	//Players of the game
 	vector<int> & vecTogo,		//Delegate
 	CServer & server			//Send message
@@ -255,14 +295,20 @@ void DoParametres
 		vecPlayers[stoi(str)].m_stateSelf.bDying = false;
 		break;
 	case RM_BADGE:
-		vecTogo.push_back(stoi(str));
+	{
+		int nVote = VoteRadio(vecPlayers, str, server);
+		vecTogo.push_back(nVote);
 		break;
+	}
 	case RM_EXILE:
-		vecTogo.push_back(stoi(str));
+	{
+		int nExile = VoteRadio(vecPlayers, str, server);
+		vecTogo.push_back(nExile);
 		break;
+	}
 	case RM_INDICATE:
 	{
-		string msgProphet("_S|This player's identity is ");
+		string msgProphet("_IR|This player's identity is ");
 		msgProphet += vecPlayers[stoi(str)].m_strIdentity;
 		GroupRadio(server, msgProphet, vecPlayers, prophet);
 		break;
@@ -355,6 +401,16 @@ vector<int> FindMost(vector<int> & set,vector<PlayerInfo> & pl,bool police)
 	return vecResult;
 }
 
+//Vote case
+int VoteRadio(vector<PlayerInfo> players,string & strVote, CServer & server)
+{
+	string strVoter = strVote.substr(0,strVote.find("~"));
+	string strVotee = strVote.substr(1 + strVote.find("~"));
+	int nVoter = stoi(strVoter), nVotee = stoi(strVotee);
+	string msgVote = string("_V|Player ") + strVoter + string(" ") + players[nVoter].GetName() + string(" votes") + strVotee + string(" ") + players[nVotee].GetName() + string(".");
+	GlobalRadio(server, msgVote, players);
+	return nVotee;
+}
 
 //Check the survivors
 int EndGame(vector<PlayerInfo> &pl)
@@ -397,8 +453,8 @@ void ShowRound(bool bNight,CServer & server,int nRound,vector<PlayerInfo> &vecPl
 void Sync(vector<PlayerInfo> & players, CServer & server)
 {
 	string alv("_YA|"), dyi("_YD|");
-	alv += (ParamGenerate(players, PG_ALIVE));
-	dyi += (ParamGenerate(players, PG_DYING));
+	alv += (BinaryGenerate(players, PG_ALIVE));
+	dyi += (BinaryGenerate(players, PG_DYING));
 	GlobalRadio(server, alv, players);
 	GlobalRadio(server, dyi, players);
 }
@@ -536,11 +592,15 @@ int MainLogic()
 			Parse(r, vecPlayers, vecDummy, server);
 		}
 		//WITCH
-		string msgWitch1("_WA|"), msgWitch2("_WD|");
-		strAlive = ParamGenerate(vecPlayers, PG_ALIVE);
-		string strDying = ParamGenerate(vecPlayers, PG_DYING);
-		GroupRadio(server, msgWitch1, vecPlayers, witch);
-		GroupRadio(server, msgWitch2, vecPlayers, witch);
+		string msgWitch("_W|");
+		Sync(vecPlayers,server);
+		GroupRadio(server, msgWitch, vecPlayers, witch);
+		vector<string> vecRespWitch;
+		GroupGet(server, vecRespWitch, vecPlayers, witch);
+		for (auto w : vecRespWitch)
+		{
+			Parse(w, vecPlayers, vecDummy, server);
+		}
 		//DAWN
 		bNight = false;
 		//Show DayNight and round
@@ -564,6 +624,8 @@ int MainLogic()
 			vector<int> vecBadge;
 			while (!bElected)
 			{
+				vecSet[VD_BADGE].clear();
+				vecBadge.clear();
 				string msgBadge("_B|");
 				msgBadge += strEle;
 				GlobalRadio(server, msgBadge, vecPlayers);
@@ -687,6 +749,7 @@ int MainLogic()
 		int nExile;
 		while (!bExile)
 		{
+			vecSet[VD_EXILE].clear();
 			vecExile.clear();
 			vector<string> vecRespExile;
 			string msgExile("_E|");
