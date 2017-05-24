@@ -4,12 +4,15 @@
 #include <Windows.h>
 #include <vector>
 #pragma comment(lib,"Ws2_32.lib")
+#define DONTWAIT 1
+#define WAITALL 0
 class CServer
 {
 protected:
 	//Core connection
 	SOCKET m_socketKernel;
 	std::vector<SOCKET> m_socketClients;
+	int nMode;
 public:
 	//Init a socket and setup a server
 	int Init(int port, const char * address);
@@ -21,5 +24,7 @@ public:
 	int SendMsg(const char *msg, int len,int seq);
 	//Recieve Message
 	int RecvMsg(char *msg, int len,int seq);
+	//Constructor
+	CServer(int);	//mode: 1 = DONTWAIT 0 = WAITALL
 };
 #endif

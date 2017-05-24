@@ -41,7 +41,7 @@ enum enResponseList
 	RM_KILL, RM_TALK, RM_ANTIDOTE, RM_BADGE,
 	RM_EXILE, RM_INDICATE, RM_NOTE, RM_POISON,
 	RM_WITCH, RM_NAME, RM_XOHTER, RM_HUNTER,
-	RM_GROUP, CM_VOTE
+	RM_GROUP
 };
 
 //Command Message
@@ -63,7 +63,8 @@ vector<string> vecCommandList
 	"_YA",	//CM_SYNCA = Sync alive
 	"_YD",	//CM_SYNCD = Sync dying
 	"_IR",	//CM_IDRES = Result of Indication
-	"_V"	//CM_VOTE = Vote case
+	"_V",	//CM_VOTE = Vote case
+	"_N"	//CM_NAME = Register the name to client
 };
 
 enum enCommandList
@@ -72,7 +73,7 @@ enum enCommandList
 	CM_INDICATE, CM_WITCH,
 	CM_HUNTER, CM_NOTE, CM_CHARACTER, CM_TALK,
 	CM_XOTHER,CM_RESULT,CM_GROUP,CM_SYNCA,
-	CM_SYNCD,CM_IDRES, CM_VOTE
+	CM_SYNCD,CM_IDRES, CM_VOTE,CM_NAME
 };
 
 //Vectors need to delegate and get the maximum 
@@ -263,10 +264,18 @@ void Parse(const string & str,vector<PlayerInfo> & vecPlayers,vector<int> & vecT
 	{
 		return;
 	}
+	int nResp;
 	string strResp, strPara;
 	strResp = str.substr(0, str.find("|"));
 	strPara = str.substr(1 + str.find("|"));
-	DoParametres(stoi(strResp), strPara, vecPlayers , vecTogo, server);
+	for (int k = 0;k < vecResponseList.size(); ++k)
+	{
+		if (strResp == vecResponseList[k])
+		{
+			nResp = k;
+		}
+	}
+	DoParametres(nResp , strPara, vecPlayers , vecTogo, server);
 }
 
 //Do something to proceed parametres
@@ -459,7 +468,7 @@ void Sync(vector<PlayerInfo> & players, CServer & server)
 int MainLogic()
 {
 	//Game Init
-	CServer server, serWolf;
+	CServer server(WAITALL), serWolf(DONTWAIT);
 	int nRound = 0;		//Counter of rounds
 	bool bNight = false;
 	int nGameEnd = 0;	//0 = Not End 1 = Villager Win 2 = Werewolf Win
@@ -504,6 +513,15 @@ int MainLogic()
 	{
 		vecPlayers.push_back(PlayerInfo(vecName[k], vecId[k]));
 	}
+	vector<string> Fushion;
+	for (auto l : vecPlayers)
+	{
+		Fushion.push_back(string("_N|" + to_string(l.GetID()) + "~" + l.GetName()));
+	}
+	for (auto s : Fushion)
+	{
+		GlobalRadio(server, s, vecPlayers);
+	}
 	//Game Loop
 	int nNote = 0;
 	while (nGameEnd == 0)	
@@ -531,22 +549,33 @@ int MainLogic()
 		serWolf.Run(WOLF_NUM);
 		//Link to serWolf use RM_TALK to talk to each other
 		//use CM_GROUP to end this procedure
+		vector<TID> IdWerewolves;
+		for (auto pl : vecPlayers)
+		{
+			if (pl.m_nch = werewolf)
+			{
+				IdWerewolves.push_back(pl.GetID());
+			}
+		}
 		while (bTalk)
 		{
-			vector<string> vecGroup;
-			GroupGet(serWolf, vecGroup, vecPlayers, werewolf);
-			for (auto s : vecGroup)
+			char szBuffer[MAX_SIZE];
+			for (auto d : IdWerewolves)
 			{
-				if (s.find(vecCommandList[CM_GROUP].c_str()) != string::npos)	//Analyze the End mark
+				int nResult = serWolf.RecvMsg(szBuffer, MAX_SIZE, d);
+				if (nResult == 0)
 				{
-					bTalk = false;
-				}
-			}
-			if (bTalk)
-			{
-				for (auto s : vecGroup)
-				{
-					Parse(s, vecPlayers, vecDummy, serWolf);
+					string strDisp(szBuffer);
+					string strCtrl = strDisp.substr(0, strDisp.find("|"));
+					if (strCtrl!= vecResponseList[RM_GROUP])
+					{
+						Parse(strDisp, vecPlayers, vecDummy, serWolf);
+					}
+					else
+					{
+						bTalk = false;
+						break;
+					}
 				}
 			}
 		}

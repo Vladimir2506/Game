@@ -10,7 +10,7 @@ int CServer::Init(int port, const char * address)
 	int nErrMsg = WSAStartup(MAKEWORD(1, 1), &wsadata);
 	if (nErrMsg != NO_ERROR)
 	{
-		std::printf("WSASTARTUP_ERROR = %d\n", nErrMsg);
+		
 		nStatus = 1;
 		return nStatus;
 	}
@@ -18,7 +18,7 @@ int CServer::Init(int port, const char * address)
 	m_socketKernel = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (m_socketKernel == INVALID_SOCKET)
 	{
-		std::printf("SOCKET_ERROR = %d\n", WSAGetLastError());
+		
 		nStatus = 2;
 		return nStatus;
 	}
@@ -31,7 +31,7 @@ int CServer::Init(int port, const char * address)
 	nErrMsg = bind(m_socketKernel, (sockaddr*)(&sockaddrServer), sizeof(sockaddrServer));
 	if (nErrMsg < 0)
 	{
-		std::printf("BIND_ERROR = %d\n", nErrMsg);
+		
 		nStatus = 3;
 		return nStatus;
 	}
@@ -54,6 +54,7 @@ unsigned int CServer::Run(int quantity)
 		else
 		{
 			m_socketClients.push_back(socketClient);
+			ioctlsocket(socketClient, FIONBIO, (u_long*)&nMode);
 		}
 	}
 	return m_socketClients.size();
@@ -66,11 +67,11 @@ void CServer::Shut()
 		closesocket(k);
 	}
 	closesocket(m_socketKernel);
-	int nRes;
+	int nRet;
 	do
 	{
-		nRes = WSACleanup();
-	} while (nRes == WSANOTINITIALISED);
+		nRet = WSACleanup();
+	} while (nRet != WSANOTINITIALISED);
 }
 
 int CServer::SendMsg(const char * msg, int len, int seq)
@@ -79,7 +80,7 @@ int CServer::SendMsg(const char * msg, int len, int seq)
 	int nErrMsg = send(m_socketClients[seq], msg, len, 0);
 	if (nErrMsg < 0)
 	{
-		std::printf("SEND_ERROR = %d\n", nErrMsg);
+		
 		nStatus = 1;
 	}
 	return nStatus;
@@ -91,8 +92,12 @@ int CServer::RecvMsg(char * msg, int len, int seq)
 	int nErrMsg = recv(m_socketClients[seq], msg, len, 0);
 	if (nErrMsg < 0)
 	{
-		std::printf("RECV_ERROR = %d\n", nErrMsg);
 		nStatus = 1;
 	}
 	return nStatus;
+}
+
+CServer::CServer(int mode)
+{
+	nMode = mode;
 }
