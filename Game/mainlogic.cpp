@@ -35,7 +35,8 @@ vector<string> vecResponseList
 	"_N",	//RM_NAME = Name the player
 	"_X",	//RM_XOHTER = A police dies and turns his badge
 	"_H",	//RM_HUNTER = A hunter dies and shoots
-	"_G"	//RM_GROUP = Werewolves Grouptalk Ends
+	"_G",	//RM_GROUP = Werewolves Grouptalk Ends
+	"_ST"	//RM_STOP = Talk stopping
 };
 
 enum enResponseList
@@ -43,7 +44,7 @@ enum enResponseList
 	RM_KILL, RM_TALK, RM_ANTIDOTE, RM_BADGE,
 	RM_EXILE, RM_INDICATE, RM_NOTE, RM_POISON,
 	RM_WITCH, RM_NAME, RM_XOHTER, RM_HUNTER,
-	RM_GROUP
+	RM_GROUP, RM_STOP
 };
 
 //Command Message
@@ -68,6 +69,7 @@ vector<string> vecCommandList
 	"_V|",	//CM_VOTE = Vote case
 	"_ID|",	//CM_ID = Register the id to client
 	"_SB|",	//CM_SYNCBADGE = Badge state need to update
+	"_ST|",	//CM_STOP = Stop talking
 };
 
 enum enCommandList
@@ -75,9 +77,9 @@ enum enCommandList
 	CM_SHOW, CM_KILL, CM_BADGE, CM_EXILE,
 	CM_INDICATE, CM_WITCH,
 	CM_HUNTER, CM_NOTE, CM_CHARACTER, CM_TALK,
-	CM_XOTHER,CM_RESULT,CM_GROUP,CM_SYNCA,
-	CM_SYNCD,CM_IDRES, CM_VOTE,CM_ID,
-	CM_SYNCBADGE
+	CM_XOTHER, CM_RESULT, CM_GROUP, CM_SYNCA,
+	CM_SYNCD, CM_IDRES, CM_VOTE, CM_ID,
+	CM_SYNCBADGE, CM_STOP
 };
 
 //Vectors need to delegate and get the maximum 
@@ -86,6 +88,24 @@ enum enDelegate
 	//Three case to find most
 	VD_KILL,VD_BADGE,VD_EXILE
 };
+
+void DoParametres(int, string &, vector<PlayerInfo>&, vector<int>&, CServer &);
+void RandomPick(vector<PlayerInfo>&, CServer&);
+string ParamGenerate(vector<PlayerInfo> &, int);
+string ParamGenerate(vector<int>);
+string BinaryGenerate(vector<PlayerInfo>&, int);
+void GlobalRadio(CServer &, const string &, vector<PlayerInfo> &);
+void GroupRadio(CServer &, const string &, vector<PlayerInfo> &, int);
+void GroupGet(CServer &, vector<string> &, vector<PlayerInfo> &, int);
+void GlobalGet(CServer &, vector<string> &, vector<PlayerInfo> &);
+void Parse(const string &, vector<PlayerInfo> &, vector<int> &, CServer &);
+vector<int> FindMost(vector<int> &, vector<PlayerInfo> &, bool);
+int VoteRadio(vector<PlayerInfo> players, string & strVote, CServer & server);
+int EndGame(vector<PlayerInfo> &pl);
+void ShowRound(bool bNight, CServer & server, int nRound, vector<PlayerInfo> &vecPlayers);
+void Sync(vector<PlayerInfo> & players, CServer & server);
+void FreeSpeech(vector<PlayerInfo> & players, CServer & server);
+int MainLogic(char *szAddr, int nPort);
 
 //Identity Decision by random
 void RandomPick(vector<PlayerInfo> & players, CServer & server)
@@ -155,7 +175,7 @@ string ParamGenerate(vector<int> vec)
 	return strParam;
 }
 
-string BinaryGenerate(vector<PlayerInfo> players,int nKey)
+string BinaryGenerate(vector<PlayerInfo> & players,int nKey)
 {
 	string strParam;
 	switch (nKey)
@@ -458,6 +478,7 @@ void FreeSpeech(vector<PlayerInfo> & players, CServer & server)
 	server.Iomanip(DONTWAIT);
 	vector<int> vecDummy;
 	bool bTalk = true;
+	int cnt = 0;
 	while (bTalk)
 	{
 		char szBuffer[MAX_SIZE];
@@ -468,22 +489,26 @@ void FreeSpeech(vector<PlayerInfo> & players, CServer & server)
 			{
 				string strDisp(szBuffer);
 				string strCtrl = strDisp.substr(0, strDisp.find("|"));
-				if (strCtrl != vecResponseList[RM_GROUP])
+				if (strCtrl != vecResponseList[RM_STOP])
 				{
 					Parse(strDisp, players, vecDummy, server);
 				}
 				else
 				{
-					bTalk = false;
-					break;
+					++cnt;
 				}
+			}
+			if (cnt == players.size())
+			{
+				bTalk = false;
+				break;
 			}
 		}
 	}
 	server.Iomanip(WAITALL);
 }
 //The main procedure of the game
-int MainLogic()
+int MainLogic(const char *szAddr,int nPort)
 {
 	//Game Init
 	CServer server(WAITALL);
@@ -496,7 +521,7 @@ int MainLogic()
 	{
 		vecId.push_back(k);
 	}
-	int status = server.Init(8888, "127.0.0.1");	//Open a server
+	int status = server.Init(nPort ,szAddr);	//Open a server
 	if (status == 0)
 	{
 		server.Run(PLAYER_NUM);		//Link to every clients
@@ -555,6 +580,8 @@ int MainLogic()
 			}
 		}
 		FreeSpeech(plWerewolves, server);
+		string strStop(vecCommandList[CM_STOP]);
+		GlobalRadio(server, strStop, plWerewolves);
 		//End talk
 		string strKill = strAlive;
 		bool bKill = false;
@@ -620,7 +647,11 @@ int MainLogic()
 			vecSet[VD_BADGE].clear();
 			string strElect(vecCommandList[CM_TALK]);
 			GlobalRadio(server, strElect, vecPlayers);
-			FreeSpeech(vecPlayers, server);
+			for (auto p : vecPlayers)
+			{
+				vector<PlayerInfo> ts{ p };
+				FreeSpeech(ts, server);
+			}
 			//After every one's statement come their decisions
 			int nBadge;
 			bool bElected = false;
@@ -739,12 +770,15 @@ int MainLogic()
 		vecpDead.clear();
 		plKill = nullptr;
 		//Speak globally
-		vector<string> vecTalk;
 		string msgTalk(vecCommandList[CM_TALK]);
 		strAlive = ParamGenerate(vecPlayers, PG_ALIVE);
 		msgTalk += strAlive;
 		GlobalRadio(server, msgTalk, vecPlayers);
-		FreeSpeech(vecPlayers, server);
+		for (auto p : vecPlayers)
+		{
+			vector<PlayerInfo> ts{ p };
+			FreeSpeech(ts, server);
+		}
 		strAlive = ParamGenerate(vecPlayers, PG_ALIVE);
 		//EXILE
 		string strPhaseExile(vecCommandList[CM_SHOW]);

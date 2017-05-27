@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="gameinfo.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="mainlogic.cpp" />
     <ClCompile Include="Server.cpp" />
   </ItemGroup>
