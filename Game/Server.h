@@ -26,5 +26,7 @@ public:
 	int RecvMsg(char *msg, int len,int seq);
 	//Constructor
 	CServer(int);	//mode: 1 = DONTWAIT 0 = WAITALL
+	//Manipulator
+	void Iomanip(int);
 };
 #endif

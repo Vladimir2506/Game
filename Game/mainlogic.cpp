@@ -17,6 +17,8 @@ const int WOLF_NUM = 3;		//Total werewolf
 const int VILL_NUM = 5;		//Total Human
 const int MAX_SIZE = 100;	//Max size of buffer
 const int MAX_NOTE = 4;		//Max size of notes
+const int GOOD = 0;			//Good man
+const int BAD = 1;			//Bad man
 
 //Response Message 
 vector<string> vecResponseList
@@ -47,24 +49,25 @@ enum enResponseList
 //Command Message
 vector<string> vecCommandList
 {
-	"_S",	//CM_SHOW = Show parametre string
-	"_K",	//CM_KILL = Want return the victim's ID
-	"_B",	//CM_BADGE = Want return ID vote for police
-	"_E",	//CM_EXILE = Want return ID vote for exile
-	"_I",	//CM_INDICATE = Want return ID to identify
-	"_W",	//CM_WITCH = witch
-	"_H",	//CM_HUNTER = Want return ID to shoot
-	"_N",	//CM_NOTE = Want return the note
-	"_C",	//CM_CHARACTER = Tell the result of pick character
-	"_T",	//CM_TALK = Want return talking
-	"_X",	//CM_XOTHER = Want to Move badge
-	"_R",	//CM_RESULT = End Game and Show Result	
-	"_G",	//CM_GROUP = Begin a Group talk
-	"_YA",	//CM_SYNCA = Sync alive
-	"_YD",	//CM_SYNCD = Sync dying
-	"_IR",	//CM_IDRES = Result of Indication
-	"_V",	//CM_VOTE = Vote case
-	"_N"	//CM_NAME = Register the name to client
+	"_S|",	//CM_SHOW = Show parametre string
+	"_K|",	//CM_KILL = Want return the victim's ID
+	"_B|",	//CM_BADGE = Want return ID vote for police
+	"_E|",	//CM_EXILE = Want return ID vote for exile
+	"_I|",	//CM_INDICATE = Want return ID to identify
+	"_W|",	//CM_WITCH = witch
+	"_H|",	//CM_HUNTER = Want return ID to shoot
+	"_N|",	//CM_NOTE = Tell all players who will address and want return the note
+	"_C|",	//CM_CHARACTER = Tell the result of pick character
+	"_T|",	//CM_TALK = Want return talking
+	"_X|",	//CM_XOTHER = Want to Move badge
+	"_R|",	//CM_RESULT = End Game and Show Result	
+	"_G|",	//CM_GROUP = Begin a Group talk
+	"_YA|",	//CM_SYNCA = Sync alive
+	"_YD|",	//CM_SYNCD = Sync dying
+	"_IR|",	//CM_IDRES = Result of Indication
+	"_V|",	//CM_VOTE = Vote case
+	"_ID|",	//CM_ID = Register the id to client
+	"_SB|",	//CM_SYNCBADGE = Badge state need to update
 };
 
 enum enCommandList
@@ -73,7 +76,8 @@ enum enCommandList
 	CM_INDICATE, CM_WITCH,
 	CM_HUNTER, CM_NOTE, CM_CHARACTER, CM_TALK,
 	CM_XOTHER,CM_RESULT,CM_GROUP,CM_SYNCA,
-	CM_SYNCD,CM_IDRES, CM_VOTE,CM_NAME
+	CM_SYNCD,CM_IDRES, CM_VOTE,CM_ID,
+	CM_SYNCBADGE
 };
 
 //Vectors need to delegate and get the maximum 
@@ -99,28 +103,8 @@ void RandomPick(vector<PlayerInfo> & players, CServer & server)
 	for (int k = 0;k < nLimit;++k)
 	{
 		PlayerInfo &p = players[k];
-		switch (p.m_nch)
-		{
-		case villager:
-			p.m_strIdentity = "Villager";
-			break;
-		case werewolf:
-			p.m_strIdentity = "Werewolf";
-			break;
-		case witch:
-			p.m_strIdentity = "Witch";
-			break;
-		case hunter:
-			p.m_strIdentity = "Hunter";
-			break;
-		case prophet:
-			p.m_strIdentity = "Prophet";
-			break;
-		default:
-			break;
-		}
 		//Sendmsg of identity
-		string msgId("_C|");
+		string msgId(vecCommandList[CM_CHARACTER]);
 		msgId += to_string(p.GetID()) + " " + to_string(p.m_nch);
 		server.SendMsg(msgId.c_str(), LEN(msgId), p.GetID());
 	}
@@ -294,7 +278,7 @@ void DoParametres
 		vecTogo.push_back(stoi(str));
 		break;
 	case RM_TALK:
-		GlobalRadio(server, string("_S|") + str, vecPlayers);
+		GlobalRadio(server, string(vecCommandList[CM_SHOW]) + str, vecPlayers);
 		break;
 	case RM_ANTIDOTE:
 		vecPlayers[stoi(str)].m_stateSelf.bDying = false;
@@ -313,15 +297,22 @@ void DoParametres
 	}
 	case RM_INDICATE:
 	{
-		string msgProphet("_IR|This player's identity is ");
-		msgProphet += vecPlayers[stoi(str)].m_strIdentity;
+		string msgProphet(vecCommandList[CM_IDRES]);
+		if (vecPlayers[stoi(str)].m_nch == werewolf)
+		{
+			msgProphet += to_string(BAD);
+		}
+		else
+		{
+			msgProphet += to_string(GOOD);
+		}
 		GroupRadio(server, msgProphet, vecPlayers, prophet);
 		break;
 	}
 	case RM_NOTE:
 		if (str != "")
 		{
-			string strNote("_S|Here is the note:");
+			string strNote(vecCommandList[CM_SHOW]);
 			GlobalRadio(server, strNote + str, vecPlayers);
 		}
 		break;
@@ -333,7 +324,7 @@ void DoParametres
 		break;
 	case RM_XOHTER:
 	{
-		string msg;
+		string msg("_SB|");
 		if (stoi(str) != REFUSE)
 		{
 			for (auto p : vecPlayers)
@@ -341,15 +332,14 @@ void DoParametres
 				if (p.GetID() == stoi(str))
 				{
 					p.m_stateSelf.bBadged = true;
-					msg = "_S|Player ";
-					msg += to_string(p.GetID()) + " " + p.GetName() + "is the new police.";
+					msg += to_string(p.GetID());
 					GlobalRadio(server, msg, vecPlayers);
 				}
 			}
 		}
 		else
 		{
-			msg = "_S|The badge is ruinned!";
+			msg += to_string(REFUSE);
 			GlobalRadio(server, msg, vecPlayers);
 		}
 		break;
@@ -409,11 +399,9 @@ vector<int> FindMost(vector<int> & set,vector<PlayerInfo> & pl,bool police)
 //Vote case
 int VoteRadio(vector<PlayerInfo> players,string & strVote, CServer & server)
 {
-	string strVoter = strVote.substr(0,strVote.find("~"));
 	string strVotee = strVote.substr(1 + strVote.find("~"));
-	int nVoter = stoi(strVoter), nVotee = stoi(strVotee);
-	string msgVote = string("_V|Player ") + strVoter + string(" ") + players[nVoter].GetName() + string(" votes") + strVotee + string(" ") + players[nVotee].GetName() + string(".");
-	GlobalRadio(server, msgVote, players);
+	int nVotee = stoi(strVotee);
+	GlobalRadio(server, strVote, players);
 	return nVotee;
 }
 
@@ -457,29 +445,58 @@ void ShowRound(bool bNight,CServer & server,int nRound,vector<PlayerInfo> &vecPl
 //Data Syncronization
 void Sync(vector<PlayerInfo> & players, CServer & server)
 {
-	string alv("_YA|"), dyi("_YD|");
+	string alv(vecCommandList[CM_SYNCA]), dyi(vecCommandList[CM_SYNCD]);
 	alv += (BinaryGenerate(players, PG_ALIVE));
 	dyi += (BinaryGenerate(players, PG_DYING));
 	GlobalRadio(server, alv, players);
 	GlobalRadio(server, dyi, players);
 }
 
+//Free speech
+void FreeSpeech(vector<PlayerInfo> & players, CServer & server)
+{
+	server.Iomanip(DONTWAIT);
+	vector<int> vecDummy;
+	bool bTalk = true;
+	while (bTalk)
+	{
+		char szBuffer[MAX_SIZE];
+		for (auto d :players)
+		{
+			int nResult = server.RecvMsg(szBuffer, MAX_SIZE, d.GetID());
+			if (nResult == 0)
+			{
+				string strDisp(szBuffer);
+				string strCtrl = strDisp.substr(0, strDisp.find("|"));
+				if (strCtrl != vecResponseList[RM_GROUP])
+				{
+					Parse(strDisp, players, vecDummy, server);
+				}
+				else
+				{
+					bTalk = false;
+					break;
+				}
+			}
+		}
+	}
+	server.Iomanip(WAITALL);
+}
 //The main procedure of the game
 int MainLogic()
 {
 	//Game Init
-	CServer server(WAITALL), serWolf(DONTWAIT);
+	CServer server(WAITALL);
 	int nRound = 0;		//Counter of rounds
 	bool bNight = false;
 	int nGameEnd = 0;	//0 = Not End 1 = Villager Win 2 = Werewolf Win
 	//PlayerInfo Init
-	vector<TID> vecId, vector<string> vecName;	//Distribute IDs and Names
+	vector<TID> vecId;	//Distribute IDs 
 	for (int k = 0; k < PLAYER_NUM; ++k)
 	{
 		vecId.push_back(k);
 	}
 	int status = server.Init(8888, "127.0.0.1");	//Open a server
-	int statgroupW = serWolf.Init(8888, "127.0.0.1");	//Open group for werewolves
 	if (status == 0)
 	{
 		server.Run(PLAYER_NUM);		//Link to every clients
@@ -489,38 +506,17 @@ int MainLogic()
 		cout << "Init failed. CODE = " << status << endl;
 		return status;		// Quit if connection failed
 	}
-	//Send message to collect the names
-	string msgName("_S|Please input your names:");
-	for (int k = 0; k < PLAYER_NUM; ++k)
-	{
-		server.SendMsg(msgName.c_str(), LEN(msgName), k);
-	}
-	for (int k = 0; k < PLAYER_NUM; ++k)
-	{
-		char szBuffer[20];
-		server.RecvMsg(szBuffer, 20, k);
-		string strBuffer(szBuffer);
-		string strResp, strPara;
-		strResp = strBuffer.substr(0, strBuffer.find("|"));
-		strPara = strBuffer.substr(1 + strBuffer.find("|"));
-		if (stoi(strResp) == RM_NAME)
-		{
-			vecName.push_back(strPara);
-		}
-	}
 	vector<PlayerInfo> vecPlayers;	//Initialize the players
 	for (int k = 0; k < vecId.size(); ++k)
 	{
-		vecPlayers.push_back(PlayerInfo(vecName[k], vecId[k]));
+		vecPlayers.push_back(PlayerInfo(vecId[k]));
 	}
-	vector<string> Fushion;
+	//Push ids to all players
 	for (auto l : vecPlayers)
 	{
-		Fushion.push_back(string("_N|" + to_string(l.GetID()) + "~" + l.GetName()));
-	}
-	for (auto s : Fushion)
-	{
-		GlobalRadio(server, s, vecPlayers);
+		string msgId(vecCommandList[CM_ID]);
+		msgId += to_string(l.GetID());
+		server.SendMsg(msgId.c_str(), LEN(msgId), l.GetID());
 	}
 	//Game Loop
 	int nNote = 0;
@@ -543,43 +539,22 @@ int MainLogic()
 		string strAlive;	//Generate a param string of alive players' IDs
 		strAlive = ParamGenerate(vecPlayers, PG_ALIVE);
 		//WEREWOLF
+		string strPhaseWerewolf(vecCommandList[CM_SHOW]);
+		strPhaseWerewolf += "This is werewolves' phase.";
+		GlobalRadio(server, strPhaseWerewolf, vecPlayers);
 		//Grouptalk
-		GroupRadio(server, string("_G|"), vecPlayers, werewolf);
-		bool bTalk = true;
-		serWolf.Run(WOLF_NUM);
+		GroupRadio(server, string(vecCommandList[CM_GROUP]), vecPlayers, werewolf);
 		//Link to serWolf use RM_TALK to talk to each other
-		//use CM_GROUP to end this procedure
-		vector<TID> IdWerewolves;
+		//use RM_GROUP to end this procedure
+		vector<PlayerInfo> plWerewolves;
 		for (auto pl : vecPlayers)
 		{
 			if (pl.m_nch = werewolf)
 			{
-				IdWerewolves.push_back(pl.GetID());
+				plWerewolves.push_back(pl);
 			}
 		}
-		while (bTalk)
-		{
-			char szBuffer[MAX_SIZE];
-			for (auto d : IdWerewolves)
-			{
-				int nResult = serWolf.RecvMsg(szBuffer, MAX_SIZE, d);
-				if (nResult == 0)
-				{
-					string strDisp(szBuffer);
-					string strCtrl = strDisp.substr(0, strDisp.find("|"));
-					if (strCtrl!= vecResponseList[RM_GROUP])
-					{
-						Parse(strDisp, vecPlayers, vecDummy, serWolf);
-					}
-					else
-					{
-						bTalk = false;
-						break;
-					}
-				}
-			}
-		}
-		serWolf.Shut();
+		FreeSpeech(plWerewolves, server);
 		//End talk
 		string strKill = strAlive;
 		bool bKill = false;
@@ -587,7 +562,7 @@ int MainLogic()
 		while (!bKill)
 		{
 			vecSet[VD_KILL].clear();
-			string msgWolf = string("_K|") + strKill;
+			string msgWolf = string(vecCommandList[CM_KILL]) + strKill;
 			GroupRadio(server, msgWolf, vecPlayers, werewolf);
 			vector<string> vecRespWolf;
 			GroupGet(server, vecRespWolf, vecPlayers, werewolf);
@@ -608,7 +583,10 @@ int MainLogic()
 		int nKill = vecKill[0];
 		vecPlayers[nKill].m_stateSelf.bDying = true;	//Sum of the wolf killing
 		//PROPHET
-		string msgProp = string("_I|") + strAlive;
+		string strPhaseProphet(vecCommandList[CM_SHOW]);
+		strPhaseProphet += "This is prohets' phase.";
+		GlobalRadio(server, strPhaseProphet, vecPlayers);
+		string msgProp = string(vecCommandList[CM_INDICATE]) + strAlive;
 		GroupRadio(server, msgProp, vecPlayers, prophet);
 		vector<string> vecRespProphet;
 		GroupGet(server, vecRespProphet, vecPlayers, prophet);
@@ -617,7 +595,10 @@ int MainLogic()
 			Parse(r, vecPlayers, vecDummy, server);
 		}
 		//WITCH
-		string msgWitch("_W|");
+		string strPhaseWitch(vecCommandList[CM_SHOW]);
+		strPhaseWitch += "This is witches' phase.";
+		GlobalRadio(server, strPhaseWitch, vecPlayers);
+		string msgWitch(vecCommandList[CM_WITCH]);
 		Sync(vecPlayers,server);
 		GroupRadio(server, msgWitch, vecPlayers, witch);
 		vector<string> vecRespWitch;
@@ -633,15 +614,13 @@ int MainLogic()
 		//First day police election
 		if (nRound == 1)
 		{
+			string strPhasePolice(vecCommandList[CM_SHOW]);
+			strPhasePolice += "This is the phase of Police Election.";
+			GlobalRadio(server, strPhasePolice, vecPlayers);
 			vecSet[VD_BADGE].clear();
-			string strElect("_T|Please deliver your statement in Police Election.");
+			string strElect(vecCommandList[CM_TALK]);
 			GlobalRadio(server, strElect, vecPlayers);
-			vector<string> vecPE;
-			GlobalGet(server, vecPE, vecPlayers);
-			for (auto epe : vecPE)
-			{
-				Parse(epe, vecPlayers, vecDummy, server);
-			}
+			FreeSpeech(vecPlayers, server);
 			//After every one's statement come their decisions
 			int nBadge;
 			bool bElected = false;
@@ -651,7 +630,7 @@ int MainLogic()
 			{
 				vecSet[VD_BADGE].clear();
 				vecBadge.clear();
-				string msgBadge("_B|");
+				string msgBadge(vecCommandList[CM_BADGE]);
 				msgBadge += strEle;
 				GlobalRadio(server, msgBadge, vecPlayers);
 				vector<string> vecRespBadge;
@@ -673,7 +652,7 @@ int MainLogic()
 			nBadge = vecBadge[0];
 			vecPlayers[nBadge].m_stateSelf.bBadged = true;
 			string strBadge("_S|Player ");
-			strBadge += to_string(nBadge) + string(" ") + vecPlayers[nBadge].GetName() + string("is elected as Police.");
+			strBadge += to_string(nBadge) + string(" is elected as Police.");
 			GlobalRadio(server, strBadge, vecPlayers);
 		}
 		//Deal with some death
@@ -684,19 +663,23 @@ int MainLogic()
 			if (p.m_stateSelf.bDying)
 			{
 				string msgNote("_S|Last night Player ");
-				msgNote += ParamGenerate(vecPlayers, PG_DYING) + string(" ") + p.GetName() + string(" was killed.");
+				msgNote += ParamGenerate(vecPlayers, PG_DYING) + string(" was killed.");
 				GlobalRadio(server, msgNote, vecPlayers);
 				vecpDead.push_back(&p);
 				p.m_stateSelf.bAlive = false;
 				p.m_stateSelf.bDying = false;
+				Sync(vecPlayers, server);
 				//Kill Note for round 1
 				if (nRound == 1)
 				{
-					string msgNote("_N|");
+					string strPhaseNote(vecCommandList[CM_SHOW]);
+					strPhaseNote += "This is the phase of Note.";
+					GlobalRadio(server, strPhaseNote, vecPlayers);
+					string msgNote(vecCommandList[CM_NOTE]);
 					server.SendMsg(msgNote.c_str(), LEN(msgNote), p.GetID());
-					char szNote[MAX_SIZE];
-					server.RecvMsg(szNote, MAX_SIZE, p.GetID());
-					Parse(string(szNote), vecPlayers, vecDummy, server);
+					vector<PlayerInfo> tmp;
+					tmp.push_back(p);
+					FreeSpeech(tmp, server);
 					++nNote;
 				}
 			}
@@ -714,7 +697,7 @@ int MainLogic()
 			{
 				if (plDead->m_stateSelf.bBadged)	//Move badge
 				{
-					string strXOther("_X|");
+					string strXOther(vecCommandList[CM_XOTHER]);
 					strXOther += strAlive;
 					server.SendMsg(strXOther.c_str(), LEN(strXOther), plDead->GetID());
 					char sz[MAX_SIZE];
@@ -723,7 +706,7 @@ int MainLogic()
 				}
 				if (plDead->m_nch == hunter)	//Hunter's phase
 				{
-					string msgHunter("_H|");
+					string msgHunter(vecCommandList[CM_HUNTER]);
 					msgHunter += strAlive;
 					server.SendMsg(msgHunter.c_str(), LEN(msgHunter), plDead->GetID());
 					char szHunter[MAX_SIZE];
@@ -739,7 +722,7 @@ int MainLogic()
 					if (plKill != nullptr)
 					{
 						string strHunter("_S|Hunter chose to shoot player ");
-						strHunter += to_string(plKill->GetID()) + string(" ") + plKill->GetName();
+						strHunter += to_string(plKill->GetID());
 						GlobalRadio(server, strHunter, vecPlayers);
 						plKill->m_stateSelf.bAlive = false;
 						plKill->m_stateSelf.bDying = false;
@@ -757,17 +740,16 @@ int MainLogic()
 		plKill = nullptr;
 		//Speak globally
 		vector<string> vecTalk;
-		string msgTalk("_T|");
+		string msgTalk(vecCommandList[CM_TALK]);
 		strAlive = ParamGenerate(vecPlayers, PG_ALIVE);
 		msgTalk += strAlive;
 		GlobalRadio(server, msgTalk, vecPlayers);
-		GlobalGet(server, vecTalk, vecPlayers);
-		for (auto t : vecTalk)
-		{
-			Parse(t, vecPlayers, vecDummy, server);
-		}
+		FreeSpeech(vecPlayers, server);
 		strAlive = ParamGenerate(vecPlayers, PG_ALIVE);
 		//EXILE
+		string strPhaseExile(vecCommandList[CM_SHOW]);
+		strPhaseExile += "This is the phase of Exile.";
+		GlobalRadio(server, strPhaseExile, vecPlayers);
 		vector<int> vecExile;
 		bool bExile = false;
 		string strNameList = strAlive;
@@ -777,7 +759,7 @@ int MainLogic()
 			vecSet[VD_EXILE].clear();
 			vecExile.clear();
 			vector<string> vecRespExile;
-			string msgExile("_E|");
+			string msgExile(vecCommandList[CM_EXILE]);
 			msgExile += strNameList;
 			GlobalRadio(server, msgExile, vecPlayers);
 			GlobalGet(server, vecRespExile, vecPlayers);
@@ -797,24 +779,27 @@ int MainLogic()
 		}
 		nExile = vecExile[0];
 		string strExile("_S|Player ");
-		strExile += to_string(nExile) + string(" ") + vecPlayers[nExile].GetName() + string(" is exiled!");
+		strExile += to_string(nExile) + string(" is exiled!");
 		GlobalRadio(server, strExile, vecPlayers);
 		vecPlayers[nExile].m_stateSelf.bAlive = false;
 		Sync(vecPlayers, server);
 		//Exile note
 		if (nNote < MAX_NOTE)
 		{
-			string msgNoteEx("_N|");
+			string strPhaseNote(vecCommandList[CM_SHOW]);
+			strPhaseNote += "This is the phase of Note.";
+			GlobalRadio(server, strPhaseNote, vecPlayers);
+			string msgNoteEx(vecCommandList[CM_NOTE]);
 			server.SendMsg(msgNoteEx.c_str(), LEN(msgNoteEx), vecPlayers[nExile].GetID());
-			char szNoteEx[MAX_SIZE];
-			server.RecvMsg(szNoteEx, MAX_SIZE, vecPlayers[nExile].GetID());
-			Parse(string(szNoteEx), vecPlayers, vecDummy, server);
+			vector<PlayerInfo> tmp;
+			tmp.push_back(vecPlayers[nExile]);
+			FreeSpeech(tmp, server);
 			++nNote;
 		}
 		//If hunter is exiled,he choose to shoot.
 		if (vecPlayers[nExile].m_nch == hunter)
 		{
-			string msgHunter("_H|");
+			string msgHunter(vecCommandList[CM_HUNTER]);
 			msgHunter += strAlive;
 			server.SendMsg(msgHunter.c_str(), LEN(msgHunter), vecPlayers[nExile].GetID());
 			char szHunter[MAX_SIZE];
@@ -830,7 +815,7 @@ int MainLogic()
 			if (plKill != nullptr)
 			{
 				string strHunter("_S|Hunter chose to shoot player ");
-				strHunter += to_string(plKill->GetID()) + string(" ") + plKill->GetName();
+				strHunter += to_string(plKill->GetID());
 				GlobalRadio(server, strHunter, vecPlayers);
 				plKill->m_stateSelf.bAlive = false;
 				plKill->m_stateSelf.bDying = false;
@@ -841,11 +826,14 @@ int MainLogic()
 		{
 			if (nNote < MAX_NOTE)
 			{
-				string msgHunterNote("_N|");
+				string strPhaseNote(vecCommandList[CM_SHOW]);
+				strPhaseNote += "This is the phase of Note.";
+				GlobalRadio(server, strPhaseNote, vecPlayers);
+				string msgHunterNote(vecCommandList[CM_NOTE]);
 				server.SendMsg(msgHunterNote.c_str(), LEN(msgHunterNote), plKill->GetID());
-				char szHunterNote[MAX_SIZE];
-				server.RecvMsg(szHunterNote, MAX_SIZE, plKill->GetID());
-				Parse(string(szHunterNote), vecPlayers, vecDummy, server);
+				vector<PlayerInfo> tmp;
+				tmp.push_back(*plKill);
+				FreeSpeech(tmp, server);
 				++nNote;
 			}
 		}

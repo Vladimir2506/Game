@@ -101,3 +101,15 @@ CServer::CServer(int mode)
 {
 	nMode = mode;
 }
+
+void CServer::Iomanip(int mode)
+{
+	if (nMode != mode)
+	{
+		nMode = mode;
+		for (auto socketClient : m_socketClients)
+		{
+			ioctlsocket(socketClient, FIONBIO, (u_long*)&nMode);
+		}
+	}
+}

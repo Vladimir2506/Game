@@ -21,14 +21,11 @@ struct state
 class PlayerInfo
 {
 private:
-	std::string m_strPlayerName;
 	TID m_ID;
 public:
 	int m_nch;
 	state m_stateSelf;
-	std::string m_strIdentity;
-	PlayerInfo(std::string,TID);
+	PlayerInfo(TID);
 	TID GetID();
-	std::string GetName();
 };
 #endif

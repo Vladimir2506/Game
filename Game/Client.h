@@ -22,5 +22,7 @@ public:
 	void Close();
 	//Constructor
 	CClient(int);
+	//Manipulator
+	void Iomanip(int);
 };
 #endif

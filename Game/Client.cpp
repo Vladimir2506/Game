@@ -60,6 +60,14 @@ CClient::CClient(int mode)
 {
 	nMode = mode;
 }
+void CClient::Iomanip(int mode)
+{
+	if (nMode != mode)
+	{
+		nMode = mode;
+		ioctlsocket(m_socketKernel, FIONBIO, (u_long*)&nMode);
+	}
+}
 int CClient::RecvMsg(char *msg, int len)
 {
 	int nStatus = 0;
