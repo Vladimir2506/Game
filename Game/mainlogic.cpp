@@ -69,7 +69,7 @@ vector<string> vecCommandList
 	"_V|",	//CM_VOTE = Vote case
 	"_ID|",	//CM_ID = Register the id to client
 	"_SB|",	//CM_SYNCBADGE = Badge state need to update
-	"_ST|",	//CM_STOP = Stop talking
+	"_ST|"	//CM_STOP = Stop talking
 };
 
 enum enCommandList
@@ -344,7 +344,7 @@ void DoParametres
 		break;
 	case RM_XOHTER:
 	{
-		string msg("_SB|");
+		string msg(vecCommandList[CM_SYNCBADGE]);
 		if (stoi(str) != REFUSE)
 		{
 			for (auto p : vecPlayers)
@@ -682,8 +682,8 @@ int MainLogic(const char *szAddr,int nPort)
 			}
 			nBadge = vecBadge[0];
 			vecPlayers[nBadge].m_stateSelf.bBadged = true;
-			string strBadge("_S|Player ");
-			strBadge += to_string(nBadge) + string(" is elected as Police.");
+			string strBadge(vecCommandList[CM_SYNCBADGE]);
+			strBadge += to_string(nBadge);
 			GlobalRadio(server, strBadge, vecPlayers);
 		}
 		//Deal with some death
@@ -817,6 +817,16 @@ int MainLogic(const char *szAddr,int nPort)
 		GlobalRadio(server, strExile, vecPlayers);
 		vecPlayers[nExile].m_stateSelf.bAlive = false;
 		Sync(vecPlayers, server);
+		//Exile badge movement
+		if (vecPlayers[nExile].m_stateSelf.bBadged)	//Move badge
+		{
+			string strXOther(vecCommandList[CM_XOTHER]);
+			strXOther += strAlive;
+			server.SendMsg(strXOther.c_str(), LEN(strXOther), vecPlayers[nExile].GetID());
+			char sz[MAX_SIZE];
+			server.RecvMsg(sz, MAX_SIZE, vecPlayers[nExile].GetID());
+			Parse(string(sz), vecPlayers, vecDummy, server);
+		}
 		//Exile note
 		if (nNote < MAX_NOTE)
 		{
