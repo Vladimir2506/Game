@@ -54,6 +54,7 @@ unsigned int CServer::Run(int quantity)
 		else
 		{
 			m_socketClients.push_back(socketClient);
+			printf("Connected. Size = %u \n", m_socketClients.size());
 			ioctlsocket(socketClient, FIONBIO, (u_long*)&nMode);
 		}
 	}
@@ -67,11 +68,7 @@ void CServer::Shut()
 		closesocket(k);
 	}
 	closesocket(m_socketKernel);
-	int nRet;
-	do
-	{
-		nRet = WSACleanup();
-	} while (nRet != WSANOTINITIALISED);
+	WSACleanup();
 }
 
 int CServer::SendMsg(const char * msg, int len, int seq)

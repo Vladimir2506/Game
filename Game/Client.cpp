@@ -50,11 +50,7 @@ int CClient::SendMsg(const char *msg, int len)
 void CClient::Close()
 {
 	int nErrMsg = closesocket(m_socketKernel);
-	int nRet;
-	do
-	{
-		nRet = WSACleanup();
-	} while (nRet != WSANOTINITIALISED);
+	WSACleanup();
 }
 CClient::CClient(int mode)
 {

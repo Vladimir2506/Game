@@ -1,6 +1,5 @@
-﻿  mainlogic.cpp
-f:\vsprj\game\game\mainlogic.cpp(114): warning C4244: “参数”: 从“time_t”转换到“unsigned int”，可能丢失数据
-f:\vsprj\game\game\mainlogic.cpp(275): warning C4018: “<”: 有符号/无符号不匹配
-f:\vsprj\game\game\mainlogic.cpp(535): warning C4018: “<”: 有符号/无符号不匹配
+﻿  Server.cpp
+  Client.cpp
+  正在生成代码...
   Game.vcxproj -> F:\VSPRJ\Game\Debug\Game.exe
   Game.vcxproj -> F:\VSPRJ\Game\Debug\Game.pdb (Partial PDB)

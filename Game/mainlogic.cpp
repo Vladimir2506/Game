@@ -279,6 +279,7 @@ void Parse(const string & str,vector<PlayerInfo> & vecPlayers,vector<int> & vecT
 			nResp = k;
 		}
 	}
+	cout << str << endl;
 	DoParametres(nResp , strPara, vecPlayers , vecTogo, server);
 }
 
