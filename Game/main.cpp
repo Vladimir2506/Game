@@ -16,15 +16,10 @@ string GetLocalIP();
 int main()
 {
 	string strAddr(GetLocalIP());
-	//int nResult = MainLogic(strAddr.c_str(), PORT_NUM);
-	//cout << nResult << endl;
-	CServer server(WAITALL);
-	server.Init(PORT_NUM, "183.172.218.23");
-	server.Run(1);
-	char msg[11] = "Connected.";
-	server.SendMsg(msg, 11, 0);
-	system("pause");
-	server.Shut();
+	cout << "SERVER IP = " << strAddr << endl;
+	cout << "PORT = " << PORT_NUM << endl;
+	int nResult = MainLogic(strAddr.c_str(), PORT_NUM);
+	cout << nResult << endl;
 	return 0;
 }
 
