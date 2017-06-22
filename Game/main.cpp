@@ -1,3 +1,8 @@
+//Name : main.cpp
+//Author:  ÏÄ×¿·²
+//Date : 2017-05-21
+//Description : The entry point of the application
+//Copyright : All by author
 #include "Server.h"
 #include "gameinfo.h"
 
@@ -13,6 +18,7 @@ using namespace std;
 int MainLogic(const char*, int);
 string GetLocalIP();
 
+
 int main()
 {
 	string strAddr(GetLocalIP());
@@ -23,7 +29,7 @@ int main()
 	return 0;
 }
 
-
+//Get server ip form the system
 string GetLocalIP()
 {
 	WORD wVersionRequested;

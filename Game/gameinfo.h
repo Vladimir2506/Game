@@ -1,3 +1,8 @@
+//Name : gameinfo.h
+//Author:  ÏÄ×¿·²
+//Date : 2017-04-30
+//Description : Header of gameinfo
+//Copyright : All by author
 #ifndef _GAMEINFO_H
 #define _GAMEINFO_H
 
@@ -5,11 +10,13 @@
 
 typedef int TID;
 
+//To notify the identity
 enum enIdentity
 {
 	werewolf, villager, prophet, witch, hunter, cupido, guardian
 };
 
+//To notify the status
 struct state						
 {
 	bool bAlive;						
@@ -18,6 +25,7 @@ struct state
 	state() :bAlive(true), bDying(false), bBadged(false) {};
 };
 
+//PlayerInfo -- description of a player
 class PlayerInfo
 {
 private:

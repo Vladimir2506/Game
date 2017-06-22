@@ -1,4 +1,8 @@
-//Header of CClient
+//Name : Client.cpp
+//Author:  ÏÄ×¿·²
+//Date : 2017-03-20
+//Description : Header of CClient
+//Copyright : All by author
 #ifndef _CLIENT_H
 #define _CLIENT_H
 #include <Windows.h>

@@ -1,3 +1,8 @@
+//Name : mainlogic.cpp
+//Author:  夏卓凡
+//Date : 2017-05-07
+//Description : mainlogic of the game
+//Copyright : All by author
 #include "gameinfo.h"
 #include "Server.h"
 #include <vector>
@@ -15,7 +20,7 @@ const int PLAYER_NUM = 8;	//Total players
 const int REFUSE = 951;		//A constant to mark doing nothing
 const int WOLF_NUM = 3;		//Total werewolf
 const int VILL_NUM = 5;		//Total Human
-const int MAX_SIZE = 200;	//Max size of buffer
+const int MAX_SIZE = 512;	//Max size of buffer
 const int MAX_NOTE = 4;		//Max size of notes
 const int GOOD = 0;			//Good man
 const int BAD = 1;			//Bad man
@@ -113,23 +118,22 @@ int MainLogic(char *, int);
 void MoveBadge(CServer & server, vector<PlayerInfo> &vecPlayers, int nId);
 void HunterShoot(CServer & server, vector<PlayerInfo> & vecPlayers, int nId, bool bSpeech, int &note);
 string Reveal(vector<PlayerInfo> &);
+void Diedelay(vector<PlayerInfo> &players, int mch);
 
-//Identity Decision by random
+//Identity Decision by Random
 void RandomPick(vector<PlayerInfo> & players, CServer & server)
 {
 	vector<int> vecIdentity = { villager, villager, werewolf, werewolf, werewolf, hunter, prophet, witch};
 	int nLimit = players.size();
-	/*while (nLimit > 0)
+	while (nLimit > 0)
 	{
 		int nMark = rand() % nLimit;
 		players[nLimit - 1].m_nch = vecIdentity[nMark];
 		vecIdentity.erase(vecIdentity.begin() + nMark);
 		--nLimit;
-	}*/
-	for (int i = 0;i < nLimit;++i)
+	}
+	for (auto &p:players)
 	{
-		auto &p = players[i];
-		p.m_nch = vecIdentity[i];
 		//Sendmsg of identity
 		string msgId(vecCommandList[CM_CHARACTER]);
 		msgId += to_string(p.GetID()) + " " + to_string(p.m_nch);
@@ -143,6 +147,7 @@ enum enGen
 	PG_ALIVE, PG_DYING
 };
 
+//Generate a string of ids by alive/dying
 string ParamGenerate(vector<PlayerInfo> & players, int nKey)
 {
 	string strParam;
@@ -172,6 +177,7 @@ string ParamGenerate(vector<PlayerInfo> & players, int nKey)
 	return strParam;
 }
 
+//Generate a string of ids
 string ParamGenerate(vector<int> vec)
 {
 	string strParam;
@@ -182,6 +188,7 @@ string ParamGenerate(vector<int> vec)
 	return strParam;
 }
 
+//Generate a string of status by 0/1
 string BinaryGenerate(vector<PlayerInfo> & players,int nKey)
 {
 	string strParam;
@@ -382,7 +389,7 @@ void DoParametres
 			vecPlayers[stoi(str)].m_stateSelf.bDying= true;
 		}
 		break;
-	case RM_WITCH:
+	case RM_WITCH:	
 		break;
 	case RM_XOHTER:
 	{
@@ -421,7 +428,8 @@ void DoParametres
 	}
 }
 
-//Find most occurance
+//Find Most Occurance
+//And a sheriff has 1.5 weights
 vector<int> FindMost(vector<int> & set,vector<PlayerInfo> & pl,bool police)
 {
 	vector<double> base;
@@ -495,7 +503,7 @@ int EndGame(vector<PlayerInfo> &pl)
 	return nEndCode;
 }
 
-//Show round
+//Show Round
 void ShowRound(bool bNight,CServer & server,int nRound,vector<PlayerInfo> &vecPlayers)
 {
 	string strRound = string("_S|第");
@@ -514,7 +522,7 @@ void Sync(vector<PlayerInfo> & players, CServer & server)
 	GlobalRadio(server, dyi, players);
 }
 
-//Free speech
+//Free Speech
 void FreeSpeech(vector<PlayerInfo> & players, CServer & server)
 {
 	server.Iomanip(DONTWAIT);
@@ -547,7 +555,6 @@ void FreeSpeech(vector<PlayerInfo> & players, CServer & server)
 					}
 					else
 					{
-						cout << szBuffer << endl;
 						bTalk = false;
 					}
 				}
@@ -557,7 +564,7 @@ void FreeSpeech(vector<PlayerInfo> & players, CServer & server)
 	server.Iomanip(WAITALL);
 }
 
-//A single cry
+//A Single Cry
 void SingleCry(vector<PlayerInfo> & players, CServer &server, int nID)
 {
 	server.Iomanip(DONTWAIT);
@@ -584,7 +591,6 @@ void SingleCry(vector<PlayerInfo> & players, CServer &server, int nID)
 			}
 			else
 			{
-				cout << szBuffer << endl;
 				bTalk = false;
 			}
 		}
@@ -622,7 +628,6 @@ void GroupComm(vector<PlayerInfo> & players, CServer & server, int nch)
 				int nResult = server.RecvMsg(szBuffer, MAX_SIZE, d.GetID());
 				if (nResult == 0)
 				{
-					cout << szBuffer << endl;
 					string strDisp(szBuffer);
 					string strCtrl = strDisp.substr(0, strDisp.find("|"));
 					if (strCtrl != vecResponseList[RM_STOP])
@@ -645,7 +650,7 @@ void GroupComm(vector<PlayerInfo> & players, CServer & server, int nch)
 	server.Iomanip(WAITALL);
 }
 
-//Badge movement
+//Badge Movement
 void MoveBadge(CServer & server, vector<PlayerInfo> &vecPlayers, int nId)
 {
 	string strXOther(vecCommandList[CM_XOTHER]);
@@ -658,7 +663,7 @@ void MoveBadge(CServer & server, vector<PlayerInfo> &vecPlayers, int nId)
 	Parse(sz, vecPlayers, vecDummy, server);
 }
 
-//Hunter shooting
+//Hunter Shooting
 void HunterShoot(CServer & server, vector<PlayerInfo> & vecPlayers, int nId,bool bSpeech,int &note)
 {
 	vector<int> vecKill;
@@ -684,7 +689,7 @@ void HunterShoot(CServer & server, vector<PlayerInfo> & vecPlayers, int nId,bool
 	}
 }
 
-//The main procedure of the game
+//The Main Procedure of the Game
 int MainLogic(const char *szAddr,int nPort)
 {
 	//Game Init
@@ -785,7 +790,7 @@ int MainLogic(const char *szAddr,int nPort)
 		}
 		int nKill = vecKill[0];
 		vecPlayers[nKill].m_stateSelf.bDying = true;	//Sum of the wolf killing
-		GroupRadio(server, vecCommandList[CM_TEAM] + "杀死了" + to_string( 1 +nKill), vecPlayers, werewolf);
+		GroupRadio(server, vecCommandList[CM_TEAM] + "杀死了" + to_string( 1 + nKill), vecPlayers, werewolf);
 		//PROPHET
 		string strPhaseProphet(vecCommandList[CM_PUBLIC]);
 		strPhaseProphet += "预言家行动阶段";
@@ -798,6 +803,7 @@ int MainLogic(const char *szAddr,int nPort)
 		{
 			Parse(r, vecPlayers, vecDummy, server);
 		}
+		Diedelay(vecPlayers, prophet);
 		//WITCH
 		string strPhaseWitch(vecCommandList[CM_PUBLIC]);
 		strPhaseWitch += "女巫行动阶段";
@@ -811,6 +817,7 @@ int MainLogic(const char *szAddr,int nPort)
 		{
 			Parse(w, vecPlayers, vecDummy, server);
 		}
+		Diedelay(vecPlayers, prophet);
 		//DAWN
 		bNight = false;
 		//Show DayNight and round
@@ -886,7 +893,6 @@ int MainLogic(const char *szAddr,int nPort)
 			}
 		}
 		strAlive = ParamGenerate(vecPlayers, PG_ALIVE);
-		cout << strAlive << endl;
 		if (nRound == 1)
 		{
 			for (auto &pd : vecpDead)
@@ -1038,6 +1044,7 @@ int MainLogic(const char *szAddr,int nPort)
 	return nRound;
 }
 
+//A game ends and all identities are revealed
 string Reveal(vector<PlayerInfo> &vecPlayers)
 {
 	string strIdentity;
@@ -1046,4 +1053,17 @@ string Reveal(vector<PlayerInfo> &vecPlayers)
 		strIdentity += to_string(p.m_nch);
 	}
 	return strIdentity;
+}
+
+//If a person die and his time will be delayed
+void Diedelay(vector<PlayerInfo> &players,int mch)
+{
+	for (auto &p : players)
+	{
+		if (p.m_nch == mch && p.m_stateSelf.bAlive == false)
+		{
+			int nSec = rand() % 5;
+			Sleep(5 + nSec);
+		}
+	}
 }

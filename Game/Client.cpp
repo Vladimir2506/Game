@@ -1,4 +1,8 @@
-//Implementation of CClient
+//Name : Client.cpp
+//Author:  ÏÄ×¿·²
+//Date : 2017-03-20
+//Description : Implementation of CClient
+//Copyright : All by author
 #include "Client.h"
 #include <cstdio>
 int CClient::Connect(int port, const char *address)

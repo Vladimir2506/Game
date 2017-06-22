@@ -1,4 +1,8 @@
-//Header of CServer
+//Name : Server.h
+//Author:  ÏÄ×¿·²
+//Date : 2017-03-20
+//Description : Header of CServer
+//Copyright : All by author
 #ifndef _SERVER_H
 #define _SERVER_H
 #include <Windows.h>

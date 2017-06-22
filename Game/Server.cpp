@@ -1,4 +1,8 @@
-//Implementation of CServer
+//Name : Server.cpp
+//Author:  ÏÄ×¿·²
+//Date : 2017-03-20
+//Description : Implementation of CServer
+//Copyright : All by author
 #include"Server.h"
 #include<cstdio>
 #include<cstring>

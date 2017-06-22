@@ -1,3 +1,9 @@
 ﻿  mainlogic.cpp
+  main.cpp
+  gameinfo.cpp
+  Server.cpp
+  Client.cpp
+  正在编译...
+  正在生成代码...
   Game.vcxproj -> F:\VSPRJ\Game\Debug\Game.exe
   Game.vcxproj -> F:\VSPRJ\Game\Debug\Game.pdb (Partial PDB)
